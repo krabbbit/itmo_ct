@@ -1,0 +1,247 @@
+package expression.exceptions;
+
+import expression.*;
+import expression.parser.TripleParser;
+import java.util.List;
+
+
+public class ExpressionParser implements TripleParser, ListParser {
+    private String str;
+    private int index;
+    private StringBuilder brackets;
+    private List<String> list;
+    private boolean isList = false;
+    public ExpressionParser() {
+    }
+
+    public TripleExpression parse(String str) {
+        this.str = str;
+        index = 0;
+        brackets = new StringBuilder();
+        //System.err.println(str);
+        TripleExpression tr;
+        tr = (TripleExpression) PlusMinus();
+//        if (tr == null) {
+//            return new Const(0);
+//        }
+        isList = false;
+        list = List.of();
+        return tr;
+    }
+
+    @Override
+    public ListExpression parse(String expression, List<String> variables) {
+        list = variables;
+        isList = true;
+        return (ListExpression) parse(expression);
+    }
+
+    private Expression PlusMinus() {
+        skipWhitespace();
+        Expression res1 = MulDiv();
+        skipWhitespace();
+        while (index < str.length()) {
+            if (str.charAt(index) == '+') {
+                index++;
+                Expression res2 = MulDiv();
+                res1 = new CheckedAdd((Elements) res1, (Elements) res2);
+            } else if (str.charAt(index) == '-') {
+                index++;
+                Expression res2 = MulDiv();
+                res1 = new CheckedSubtract((Elements) res1, (Elements) res2);
+            } else {
+                CheckedAddSubstruct.checked(index, str, brackets);
+                break;
+            }
+            skipWhitespace();
+        }
+        return res1;
+    }
+
+    private Expression MulDiv() {
+        skipWhitespace();
+        Expression res1 = UnaryMinusBrackets();
+        skipWhitespace();
+        while (index < str.length()) {
+            if (str.charAt(index) == '*') {
+                index++;
+                Expression res2 = UnaryMinusBrackets();
+                res1 = new CheckedMultiply((Elements) res1, (Elements) res2);
+            } else if (str.charAt(index) == '/') {
+                index++;
+                Expression res2 = UnaryMinusBrackets();
+                res1 = new CheckedDivide((Elements) res1, (Elements) res2);
+            } else {
+                CheckedMulDiv.checked(index, str, brackets);
+                break;
+            }
+            skipWhitespace();
+        }
+        return res1;
+    }
+
+    private Expression UnaryMinusBrackets() {
+        skipWhitespace();
+        if ((index + 1) < str.length() && (str.charAt(index) == '-') && ((Character.isDigit(str.charAt(index + 1)) || (Character.isLetter(str.charAt(index + 1)))))) {
+            //минус прямо перед числом или переменной
+            return Lexems();
+        } else if (index < str.length() && (str.charAt(index) == '-')) {
+            // после минуса идут пробелы
+            skipWhitespace();
+            index++;
+            skipWhitespace();
+            if (index < str.length() && !isOpenBrackets(str.charAt(index))) {
+                // если нет скобок - это унарный минус, запускаем рекурсию
+                return new CheckedNegate((Elements) UnaryMinusBrackets());
+            } else {
+                // если есть скобки - парсим скобки с минусом
+                Expression res = parseBrackets(true);
+                if (res != null) {
+                    return res;
+                }
+            }
+        }
+        // минуса нет, парсим скобки без минуса
+        Expression res = parseBrackets(false);
+        if (res != null) {
+            return res;
+        }
+        // если что-то идет не так - это точно лексема
+        return Lexems();
+    }
+
+    private Expression Lexems() {
+        skipWhitespace();
+        StringBuilder s = new StringBuilder();
+        if (isList && !Character.isDigit(str.charAt(index)) && str.charAt(index) != '-') {
+            while (index < str.length() && !isWhiteSpace(str.charAt(index)) && !isOperationSymbol(str.charAt(index))) {
+                s.append(str.charAt(index));
+                index++;
+            }
+            int indexOfVar = list.indexOf(s.toString());
+            if (indexOfVar >= 0) {
+                Variable res1 = new Variable(indexOfVar);
+                res1.setName(list.get(indexOfVar));
+                return res1;
+            }
+        }
+        if (index < str.length() && (str.charAt(index) == 'x' || str.charAt(index) == 'y' || str.charAt(index) == 'z')) {
+            Expression res1 = new Variable(Character.toString(str.charAt(index)));
+            index++;
+            return res1;
+        }
+//        if (str.isEmpty()) {
+//            return null;
+//        }
+        if (index >= str.length()) {
+            throw new BoundsException("Expected to continue but the line ended");
+        }
+        if (str.charAt(index) == 'l') {
+            return parseLog();
+        }
+        if (str.charAt(index) == 'p') {
+            return parsePow();
+        }
+        if (!Character.isDigit(str.charAt(index)) && (str.
+                charAt(index) != '-')) {
+            throw new ParserException("Expected a variable, const or brackets, but got another character here", str, index);
+        }
+        s = new StringBuilder(Character.toString(str.charAt(index)));
+        index++;
+        while (index < str.length() && Character.isDigit(str.charAt(index))) {
+            s.append(str.charAt(index));
+            index++;
+        }
+        if (s.toString().equals("-")) {
+            return new CheckedNegate((Elements) PlusMinus());
+        }
+        try {
+            return new Const(Integer.parseInt(s.toString()));
+        } catch (NumberFormatException e) {
+            throw new OverflowError("Overflow const");
+        }
+    }
+
+    private Expression parsePow() {
+        index++;
+        int i = 0;
+        String expect = "ow2";
+        while (index < str.length() && i < 3) {
+            if (str.charAt(index) != expect.charAt(i)) {
+                throw new ParserException("expected pow2 but it was not received", str, index);
+            }
+            index++;
+            i++;
+        }
+        if (index < str.length() && !isWhiteSpace(str.charAt(index)) && !isOpenBrackets(str.charAt(index))) {
+            throw new AriException("Invalid argument for exponentiation", str, index);
+        }
+        return new CheckedPow((Elements) UnaryMinusBrackets());
+    }
+
+    private Expression parseLog() {
+        index++;
+        int i = 0;
+        String expect = "og2";
+        while (index < str.length() && i < 3) {
+            if (str.charAt(index) != expect.charAt(i)) {
+                throw new ParserException("expected log2 but it was not received", str, index);
+            }
+            index++;
+            i++;
+        }
+        if (index < str.length() && !isWhiteSpace(str.charAt(index)) && !isOpenBrackets(str.charAt(index))) {
+            throw new AriException("Invalid argument for logarithm", str, index);
+        }
+        return new CheckedLog((Elements) UnaryMinusBrackets());
+    }
+
+    private Expression parseBrackets(boolean ee) {
+        if (index < str.length() && isOpenBrackets(str.charAt(index))) {
+            brackets.append(str.charAt(index));
+            index++;
+            skipWhitespace();
+            Expression res1 = PlusMinus();
+            if (ee) {
+                res1 = new CheckedNegate((Elements) res1);
+            }
+            skipWhitespace();
+            if (index < str.length() && (isCloseBrackets(str.charAt(index)))) {
+                if (index < str.length() && !brackets.isEmpty() && (str.charAt(index) == ')' && brackets.charAt(brackets.length() - 1) == '(' ||
+                        str.charAt(index) == ']' && brackets.charAt(brackets.length() - 1) == '[' ||
+                        str.charAt(index) == '}' && brackets.charAt(brackets.length() - 1) == '{')) {
+                    brackets.deleteCharAt(brackets.length() - 1);
+                    index++;
+                } else {
+                    throw new BracketsException("No open brackets ");
+                }
+                return res1;
+            } else {
+                throw new BracketsException("No closing bracket");
+
+            }
+        } else {
+            return null;
+        }
+    }
+    private boolean isWhiteSpace(char c) {
+        return Character.isWhitespace(c);
+    }
+
+    private boolean isOperationSymbol(char c) {
+        return (c == '+' || c == '-' || c == '/' || c == '*' || c == ')' || c == ']' || c == '}');
+    }
+
+    private void skipWhitespace() {
+        while (index < str.length() && isWhiteSpace(str.charAt(index))) {
+            index++;
+        }
+    }
+    private boolean isOpenBrackets (char c) {
+        return c == '(' || c == '[' || c == '{';
+    }
+    private boolean isCloseBrackets (char c) {
+        return c == ')' || c == ']' || c == '}';
+    }
+
+}
