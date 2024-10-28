@@ -1,0 +1,11 @@
+<RCC>
+    <qresource prefix="/">
+        <file>images/levsha.png</file>
+        <file>images/restart1.png</file>
+        <file>images/restart2.png</file>
+        <file>images/levsha2.png</file>
+        <file>images/dbg.png</file>
+        <file>MineSweeper_tt_RU.qm</file>
+        <file>MineSweeper_ru_RU.qm</file>
+    </qresource>
+</RCC>
