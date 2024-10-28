@@ -6,5 +6,5 @@
 
 [Проекты на JavaScript](https://github.com/krappis4/itmo_ct/edit/main/javascript-solutions)
 
-[Проекты на C++](https://github.com/krappis4/itmo_ct/edit/main/cpp-solutions)
+[Проекты на C/C++](https://github.com/krappis4/itmo_ct/edit/main/cpp-solutions)
 
