@@ -8,3 +8,5 @@
 
 [Проекты на C/C++](https://github.com/krappis4/itmo_ct/edit/main/cpp-solutions)
 
+Проекты на Golang - будет update после конца курса ШАД Go
+
