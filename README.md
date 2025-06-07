@@ -5,7 +5,7 @@
 - Консольная утилита на Go для анализа статистики (строки, коммиты, файлы) Git-репозитория с параллельной обработкой данных, фильтрацией и выводом в CSV/JSON/tabular.
 - Стек: Golang, concurrency(goroutines, channels, пакет sync), стандартная библиотека, работа с Git CLI
 
-### [Проекты на Golang](https://github.com/krappis4/itmo_ct/edit/main/go-solutions)
+### [Проекты на Golang](https://github.com/krappis4/itmo_ct/edit/main/go-solutions-shad)
 
 ### [Проекты на Java](https://github.com/krappis4/itmo_ct/edit/main/java-solutions)
 
